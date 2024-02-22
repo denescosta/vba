@@ -1,0 +1,1862 @@
+    Dim Arquivo As Variant
+    Dim wbOrigem As Workbook
+    Dim wsOrigem As Worksheet
+    Dim wsDestino As Worksheet
+    Dim LastRowOrigem As Long
+    Dim LastRowDestino As Long
+    Dim LastRowDestinoC As Long ' Última linha na coluna C do destino
+    Dim LastColumnOrigem As Long
+    Dim LastColumnDestino As Long
+    
+    ' Mostra o diálogo de seleção de arquivo
+    Arquivo = Application.GetOpenFilename("Arquivos Excel (*.xlsx), *.xlsx", , "Selecione o arquivo de origem")
+    
+    ' Verifica se um arquivo foi selecionado
+    If Arquivo <> False Then
+        ' Abre o arquivo selecionado
+        Set wbOrigem = Workbooks.Open(Arquivo)
+        
+        ' Defina a primeira planilha do arquivo de origem como a planilha de origem
+        Set wsOrigem = wbOrigem.Sheets(1)
+        
+        ' Defina a primeira planilha do arquivo atual como a planilha de destino
+        Set wsDestino = ThisWorkbook.Sheets(1)
+        
+        ' Encontra a última linha na coluna E da planilha de origem
+        LastRowOrigem = wsOrigem.Cells(wsOrigem.Rows.Count, "E").End(xlUp).Row
+        
+        ' Encontra a última linha na coluna A da planilha de destino
+        LastRowDestino = wsDestino.Cells(wsDestino.Rows.Count, "A").End(xlUp).Row
+        
+        ' Encontra a última linha na coluna C da planilha de destino
+        LastRowDestinoC = lastRow(wsDestino, "C")
+        
+        ' Encontra a última coluna na planilha de origem
+        LastColumnOrigem = wsOrigem.Cells(1, wsOrigem.Columns.Count).End(xlToLeft).Column
+        
+        ' Encontra a última coluna na planilha de destino
+        LastColumnDestino = wsDestino.Cells(1, wsDestino.Columns.Count).End(xlToLeft).Column
+        
+        ' Copia os dados das colunas A, B e D do arquivo de origem para o arquivo atual
+        wsOrigem.Range("A1:B" & LastRowOrigem).Copy Destination:=wsDestino.Range("A" & LastRowDestino)
+        wsOrigem.Range("D1:D" & LastRowOrigem).Copy Destination:=wsDestino.Range("C1:C" & LastRowDestino + LastRowOrigem)
+        
+        ' Copia apenas os valores da célula da última linha da coluna E do arquivo de origem para a célula correspondente na coluna C do arquivo de destino
+        wsDestino.Cells(LastRowOrigem, "C").Value = wsOrigem.Cells(LastRowOrigem, "E").Value
+        
+        ' Deleta a penúltima linha inteira do destino
+        wsDestino.Rows(LastRowOrigem - 1).EntireRow.Delete
+        
+        ' Limpa a área de transferência
+        Application.CutCopyMode = False
+        
+        ' Feche o arquivo de origem sem salvar alterações
+        wbOrigem.Close SaveChanges:=False
+        
+        MsgBox "Dados copiados e última linha acrescentada com sucesso!"
+    Else
+        MsgBox "Nenhum arquivo selecionado."
+    End If
+End Sub
+
+Function lastRow(ws As Worksheet, col As String) As Long
+    lastRow = ws.Cells(ws.Rows.Count, col).End(xlUp).Row
+    If lastRow = 1 And ws.Cells(1, col).Value = "" Then lastRow = 0 ' Caso a coluna esteja vazia
+End Function
+
+
+Sub aaaCopiarLayoutOrçamentos()
+    Dim wbOrigem As Workbook
+    Dim wsOrigem As Worksheet
+    
+    ' Abra o arquivo de origem
+    Set wbOrigem = Workbooks.Open("Z:\Engenharia\layout-orçamentos.xlsx") ' Substitua pelo caminho do arquivo de origem
+    
+    ' Defina a planilha de origem
+    Set wsOrigem = wbOrigem.Sheets("orçamentos") ' Substitua "PlanilhaOrigem" pelo nome da planilha de origem
+    
+    ' Copie a planilha de origem para a planilha atual
+    Application.DisplayAlerts = False ' Desativa as mensagens de alerta para substituir a planilha
+    wsOrigem.Copy Before:=ThisWorkbook.Sheets(1) ' Substitua pelo índice da planilha que deseja substituir
+    Application.DisplayAlerts = True ' Ativa novamente as mensagens de alerta
+    
+    ' Exclui a planilha original
+    wbOrigem.Close SaveChanges:=False ' Fecha o arquivo de origem sem salvar alterações
+    
+    ' Renomeie a nova planilha, se necessário
+    ThisWorkbook.Sheets(1).Name = "Custos" ' Substitua "PlanilhaSubstituida" pelo nome desejado
+    
+End Sub
+
+
+Sub LerValoresDoArquivoDeReferencia(ByRef valoresB() As Variant, ByRef valoresE() As Variant)
+    Dim outroArquivo As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    
+    ' Defina o caminho do arquivo externo
+    outroArquivo = "Z:\Engenharia\Custos e Pré-projetos\2023\LISTA DE PREÇOS\Lista Geral de Preços Fluid Feeder - 2º semestre 2023 (Engenharia).xlsx"
+    
+    ' Verifique se o arquivo existe
+    If Dir(outroArquivo) = "" Then
+        MsgBox "O arquivo não foi encontrado."
+        Exit Sub
+    End If
+    
+    ' Abra o arquivo externo
+    Set wb = Workbooks.Open(outroArquivo, ReadOnly:=True)
+    
+    ' Verifique se a planilha existe
+    On Error Resume Next
+    Set ws = wb.Sheets("Lista de preços")
+    On Error GoTo 0
+    
+    If ws Is Nothing Then
+        MsgBox "A planilha especificada não foi encontrada no arquivo."
+        wb.Close False
+        Exit Sub
+    End If
+    
+    ' Encontre a última linha com dados na coluna B e na coluna E
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    ' Armazene os valores das colunas B e E em arrays
+    valoresB = ws.Range("B1:B" & lastRow).Value
+    valoresE = ws.Range("E1:E" & lastRow).Value
+    
+    ' Converta os valores da coluna B para maiúsculo
+    For i = 1 To UBound(valoresB, 1)
+        valoresB(i, 1) = UCase(valoresB(i, 1))
+    Next i
+    
+    ' Feche o arquivo externo
+    wb.Close False
+End Sub
+
+Sub LerValoresDoArquivoDeReferencia1(ByRef valoresB() As Variant, ByRef valoresE() As Variant)
+    Dim outroArquivo As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    
+    ' Defina o caminho do arquivo externo
+    outroArquivo = "Z:\Engenharia\lista-padrão-orçamento.xlsx"
+    
+    ' Verifique se o arquivo existe
+    If Dir(outroArquivo) = "" Then
+        MsgBox "O arquivo não foi encontrado."
+        Exit Sub
+    End If
+    
+    ' Abra o arquivo externo
+    Set wb = Workbooks.Open(outroArquivo, ReadOnly:=True)
+    
+    ' Verifique se a planilha existe
+    On Error Resume Next
+    Set ws = wb.Sheets("Lista de preços")
+    On Error GoTo 0
+    
+    If ws Is Nothing Then
+        MsgBox "A planilha especificada não foi encontrada no arquivo."
+        wb.Close False
+        Exit Sub
+    End If
+    
+    ' Encontre a última linha com dados na coluna B e na coluna E
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    ' Armazene os valores das colunas B e E em arrays
+    valoresB = ws.Range("B1:B" & lastRow).Value
+    valoresE = ws.Range("E1:E" & lastRow).Value
+    
+    ' Converta os valores da coluna B para maiúsculo
+    For i = 1 To UBound(valoresB, 1)
+        valoresB(i, 1) = UCase(valoresB(i, 1))
+    Next i
+    
+    ' Feche o arquivo externo
+    wb.Close False
+End Sub
+
+Sub suporte_parede()
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    Dim celulaAtiva As Range
+    Dim i As Integer
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B2 até B6 na coluna da célula ativa
+    For i = 2 To 6
+        celulaAtiva.Offset(i - 2, 0).Value = valoresB(i, 1)
+    Next i
+    
+    ' Cole os valores das células E2 até E6 nas colunas à direita da célula ativa
+    For i = 2 To 6
+        celulaAtiva.Offset(i - 2, 1).Value = valoresE(i, 1)
+    Next i
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub base_bomba()
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    Dim celulaAtiva As Range
+    Dim i As Integer
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B18 até B22 na célula ativa
+    For i = 18 To 22
+        celulaAtiva.Offset(i - 18, 0).Value = valoresB(i, 1)
+    Next i
+    
+    ' Cole os valores das células E18 até E22 nas colunas à direita da célula ativa
+    For i = 18 To 22
+        celulaAtiva.Offset(i - 18, 1).Value = valoresE(i, 1)
+    Next i
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub tubo_aco()
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    Dim celulaAtiva As Range
+    Dim i As Integer
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B2 até B6 na coluna da célula ativa
+    For i = 15 To 16
+        celulaAtiva.Offset(i - 15, 0).Value = valoresB(i, 1)
+    Next i
+    
+    ' Cole os valores das células E2 até E6 nas colunas à direita da célula ativa
+    For i = 15 To 16
+        celulaAtiva.Offset(i - 15, 1).Value = valoresE(i, 1)
+    Next i
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub te_aco_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(8, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(8, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub te__red_aco_1x1_2()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(9, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(9, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub te__red_aco_1x3_4()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(11, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(11, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub cotovelo_red_aco_1x3_4()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(12, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(12, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub cotovelo_aco_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(10, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(10, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub veda_rosca()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia1 valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(13, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(13, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub válvula_header()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B168 e E168 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(168, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(168, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub aquecedor_com_purgador_3_4()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B8 e E8 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(8, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(8, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub aquecedor_com_purgador_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B9 e E9 na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(9, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(9, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub aquecedor_tipo_coleira_3_4()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(10, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(10, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub aquecedor_tipo_coleira_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(11, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(11, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+
+Sub clor_auto_100kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(13, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(13, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_auto_240kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(14, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(14, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_auto_2000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(15, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(15, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_5_a_50kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(16, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(16, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_100kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(18, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(18, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_240_a_270()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(20, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(20, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_1000lb_v3000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(22, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(22, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_1000lb_v1000kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(23, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(23, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_2000lb_v3000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(24, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(24, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub clor_man_2000lb_v1000kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub flexível_uxc_s_banho()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(28, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(28, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub cj_sensor_alarme()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(40, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(40, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub detector_1pto()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(41, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(41, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub detector_2pto()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(42, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(42, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub detector_1pto_bat_sir()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(43, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(43, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub evaporador()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(47, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(47, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub filtro_cesto_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(48, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(48, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub filtro_Y_3_4()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(49, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(49, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub filtro_Y_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(50, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(50, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub grampo_yoke()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(53, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(53, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub injetor_3_4_100kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(54, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(54, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub injetor_1_270kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(56, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(56, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub injetor_2_1500lb_c()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(59, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(59, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub injetor_2_2000lb_c()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(61, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(61, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub injetor_3_6000lb_pvc()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(63, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(63, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub injetor_4_10000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(64, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(64, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub kit_A()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(65, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(65, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub kit_B()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(66, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(66, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub mangueira_PEAD()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(110, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(110, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub manometro_sem_ctt()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(121, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(121, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub manometro_com_1_ctt()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(122, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(122, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub manometro_com_2_ctt()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(123, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(123, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_auto_100kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(124, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(124, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_auto_240kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(125, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(125, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_auto_2000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(126, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(126, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_5kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(127, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(127, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_10kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(129, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(129, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_26kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(131, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(131, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_50kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(133, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(133, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_100kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(135, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(135, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_240kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(137, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(137, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_270kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(139, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(139, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_1000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(141, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(141, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_2000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(142, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(142, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_4000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(143, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(143, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_6000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(144, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(144, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub modulo_man_10000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(145, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(145, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+
+Sub suporte_trunion()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(154, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(154, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub união_tipo_amônia_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(163, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(163, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_yoke()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(164, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(164, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_linha_globo_1()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(166, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(166, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_red_press_50165()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(170, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(170, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_red_press_50175()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(171, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(171, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_red_press_50185()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(172, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(172, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_reg_240kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(173, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(173, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_reg_1000kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(175, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(175, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_checkunit_3000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(177, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(177, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_checkunit_10000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(178, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(178, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_sw_elet_270kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(179, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(179, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_sw_elet_270kg_nobreak()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(180, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(180, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_sw_elet_1000kg()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(181, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(181, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_sw_man_500lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(182, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(182, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub válvula_sw_man_3000lb()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(184, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(184, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
+Sub viga_içamento()
+    Dim valorCelulaB As Variant
+    Dim valorCelulaE As Variant
+    
+    Application.ScreenUpdating = False ' Desativa atualizações de tela para acelerar o código
+    
+    ' Ler os valores do arquivo de referência
+    Dim valoresB() As Variant
+    Dim valoresE() As Variant
+    LerValoresDoArquivoDeReferencia valoresB, valoresE
+    
+    ' Defina a célula ativa como o destino para a colagem
+    Dim celulaAtiva As Range
+    Set celulaAtiva = ActiveCell
+    
+    ' Cole os valores das células B e E na célula ativa e converta para maiúsculas
+    celulaAtiva.Value = valoresB(185, 1)
+    celulaAtiva.Offset(0, 1).Value = valoresE(185, 1)
+    
+    Application.ScreenUpdating = True ' Ativa atualizações de tela novamente
+End Sub
